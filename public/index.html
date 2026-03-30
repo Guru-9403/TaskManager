@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Task Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#eef2f7;--sur:#fff;--sur2:#f7fafc;--brd:#e2e8f0;--txt:#1a202c;--txt2:#4a5568;--acc:#3b6ef8;--ach:#2855d6;--dan:#e53e3e;--suc:#38a169;--wrn:#d69e2e;--sh:0 4px 24px rgba(0,0,0,.08);--r:14px;}
+[data-theme="dark"]{--bg:#0f1117;--sur:#1a1d2e;--sur2:#252840;--brd:#2d3154;--txt:#e2e8f0;--txt2:#a0aec0;--sh:0 4px 24px rgba(0,0,0,.4);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden;}
+.page{position:fixed;inset:0;width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;transition:transform .42s cubic-bezier(.77,0,.18,1),opacity .42s ease;will-change:transform,opacity;}
+.hl{transform:translateX(-100%);opacity:0;pointer-events:none;}
+.hr{transform:translateX(100%);opacity:0;pointer-events:none;}
+.vs{transform:translateX(0);opacity:1;pointer-events:all;}
+@keyframes ci{from{opacity:0;transform:translateY(22px) scale(.97);}to{opacity:1;transform:none;}}
+@keyframes bl{from{transform:scale(1);}to{transform:scale(1.2) translate(20px,14px);}}
+@keyframes pu{0%,100%{opacity:1;}50%{opacity:.4;}}
+/* DARK BG */
+.dp{background:linear-gradient(135deg,#0f1117 0%,#1a1d2e 50%,#1a2744 100%);align-items:center;justify-content:center;}
+.dp::before,.dp::after{content:'';position:fixed;border-radius:50%;filter:blur(88px);opacity:.14;animation:bl 9s ease-in-out infinite alternate;pointer-events:none;}
+.dp::before{width:500px;height:500px;background:#3b6ef8;top:-120px;left:-100px;}
+.dp::after{width:380px;height:380px;background:#6366f1;bottom:-90px;right:-70px;animation-delay:3.5s;}
+.card{background:rgba(255,255,255,.055);backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,.1);border-radius:22px;position:relative;z-index:1;animation:ci .5s cubic-bezier(.22,.61,.36,1);}
+
+/* ── PAGE 0: TRIAL ── */
+.trial-card{width:520px;max-width:calc(100vw - 32px);padding:46px 42px;text-align:center;}
+.logo{font-family:'Syne',sans-serif;font-size:1.85rem;font-weight:800;color:#fff;letter-spacing:-1px;margin-bottom:5px;}
+.logo span{color:#3b6ef8;}
+.tagline{font-size:.83rem;color:rgba(255,255,255,.36);margin-bottom:24px;}
+.trial-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(59,110,248,.18);border:1px solid rgba(99,102,241,.4);border-radius:50px;padding:8px 18px;margin-bottom:22px;font-size:.8rem;font-weight:700;color:#a5b4fc;}
+.features{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:24px;text-align:left;}
+.feat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:10px 12px;font-size:.77rem;color:rgba(255,255,255,.58);}
+.cta{width:100%;padding:13px;border-radius:11px;border:none;background:linear-gradient(135deg,#3b6ef8,#6366f1);color:#fff;font-family:'DM Sans',sans-serif;font-size:.93rem;font-weight:700;cursor:pointer;box-shadow:0 5px 20px rgba(59,110,248,.4);margin-bottom:13px;transition:all .2s;}
+.cta:hover{transform:translateY(-2px);box-shadow:0 9px 26px rgba(59,110,248,.52);}
+.foot{font-size:.76rem;color:rgba(255,255,255,.3);}
+.foot button{background:none;border:none;color:#93b4fc;font-weight:700;cursor:pointer;font-size:.76rem;font-family:'DM Sans',sans-serif;}
+.foot button:hover{color:#fff;}
+
+/* ── PAGE 1: ROLE SELECT ── */
+.role-card{width:420px;max-width:calc(100vw - 32px);padding:44px 36px;text-align:center;}
+.role-end{display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.22);border-radius:20px;padding:5px 13px;font-size:.72rem;font-weight:700;color:#fcd34d;margin-bottom:28px;}
+.role-lbl{font-size:.68rem;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.32);margin-bottom:18px;}
+.role-opts{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+
+/* SIMPLE NAME-ONLY ROLE BUTTONS */
+.role-btn{
+  width:100%;padding:16px 20px;border-radius:12px;
+  border:2px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  cursor:pointer;font-family:'Syne',sans-serif;
+  font-size:1.05rem;font-weight:800;
+  display:flex;align-items:center;justify-content:space-between;
+  transition:all .22s;color:#fff;
+}
+.role-btn:hover{transform:translateY(-3px);}
+.role-btn .rb-arrow{font-size:.85rem;transition:transform .2s;}
+.role-btn:hover .rb-arrow{transform:translateX(5px);}
+.rb-user{border-color:rgba(59,110,248,.45);}
+.rb-user:hover{border-color:#3b6ef8;background:rgba(59,110,248,.12);box-shadow:0 10px 30px rgba(59,110,248,.25);}
+.rb-user .rb-name{color:#93b4fc;}
+.rb-admin{border-color:rgba(245,158,11,.45);}
+.rb-admin:hover{border-color:#f59e0b;background:rgba(245,158,11,.1);box-shadow:0 10px 30px rgba(245,158,11,.22);}
+.rb-admin .rb-name{color:#fcd34d;}
+.role-btn .rb-name{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;}
+
+.backbtn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.28);font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;transition:color .2s;}
+.backbtn:hover{color:rgba(255,255,255,.65);}
+
+/* ── AUTH PAGES ── */
+.awrap{display:flex;align-items:stretch;width:840px;max-width:calc(100vw - 32px);min-height:490px;border-radius:22px;overflow:hidden;box-shadow:0 28px 75px rgba(0,0,0,.5);position:relative;z-index:1;animation:ci .5s cubic-bezier(.22,.61,.36,1);}
+.aleft{flex:1;padding:46px 38px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+.aleft::after{content:'';position:absolute;width:260px;height:260px;border-radius:50%;border:46px solid rgba(255,255,255,.06);bottom:-75px;right:-55px;}
+.ul{background:linear-gradient(160deg,#3b6ef8 0%,#1e40af 100%);}
+.adl{background:linear-gradient(160deg,#b45309 0%,#78350f 100%);}
+.al-lbl{font-size:.67rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.46);margin-bottom:10px;}
+.al-ttl{font-family:'Syne',sans-serif;font-size:1.95rem;font-weight:800;color:#fff;line-height:1.2;margin-bottom:11px;}
+.al-ttl span{color:#bfdbfe;}
+.adl .al-ttl span{color:#fde68a;}
+.al-dsc{font-size:.82rem;color:rgba(255,255,255,.5);line-height:1.68;margin-bottom:20px;}
+.al-note{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:10px 12px;display:flex;align-items:flex-start;gap:7px;font-size:.74rem;color:rgba(255,255,255,.6);line-height:1.5;}
+.al-note strong{color:#fde68a;}
+.aright{width:350px;flex-shrink:0;background:rgba(255,255,255,.05);backdrop-filter:blur(20px);border-left:1px solid rgba(255,255,255,.08);padding:38px 32px;display:flex;flex-direction:column;justify-content:center;}
+.ar-ttl{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:4px;}
+.ar-sub{font-size:.77rem;color:rgba(255,255,255,.34);margin-bottom:20px;}
+.stepbar{display:flex;align-items:center;gap:6px;margin-bottom:20px;}
+.sc2{width:25px;height:25px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;}
+.sl2{flex:1;height:3px;border-radius:2px;}
+.sdone{background:#38a169;color:#fff;}
+.sact{background:#f59e0b;color:#1a1d2e;}
+.stodo{background:rgba(255,255,255,.12);color:rgba(255,255,255,.35);}
+.sldone{background:#f59e0b;}
+.sltodo{background:rgba(255,255,255,.12);}
+.fg{margin-bottom:13px;}
+.fg label{display:block;font-size:.67rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
+.fw{position:relative;}
+.fi{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.22);pointer-events:none;}
+.fw input{width:100%;padding:10px 37px;border-radius:9px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.07);color:#fff;font-family:'DM Sans',sans-serif;font-size:.86rem;outline:none;transition:border-color .2s,box-shadow .2s;}
+.fw input::placeholder{color:rgba(255,255,255,.18);}
+.fw input:focus{border-color:#3b6ef8;box-shadow:0 0 0 3px rgba(59,110,248,.18);}
+.admin-auth .fw input:focus{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.16);}
+.eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.26);padding:0;transition:color .2s;}
+.eye:hover{color:rgba(255,255,255,.65);}
+.abtn{width:100%;padding:12px;border-radius:10px;border:none;background:#3b6ef8;color:#fff;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(59,110,248,.32);margin-top:3px;}
+.abtn:hover{background:#2855d6;transform:translateY(-2px);}
+.abtn:active{transform:translateY(0);}
+.admin-auth .abtn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#1a1d2e;box-shadow:0 4px 14px rgba(245,158,11,.26);}
+.admin-auth .abtn:hover{background:linear-gradient(135deg,#fbbf24,#f59e0b);}
+.aerr{background:rgba(229,62,62,.15);border:1px solid rgba(229,62,62,.3);color:#fc8181;border-radius:8px;padding:8px 11px;font-size:.77rem;font-weight:600;margin-bottom:11px;display:none;}
+.aok{background:rgba(56,161,105,.15);border:1px solid rgba(56,161,105,.3);color:#68d391;border-radius:8px;padding:8px 11px;font-size:.77rem;font-weight:600;margin-bottom:11px;display:none;}
+.afoot{text-align:center;margin-top:13px;font-size:.76rem;color:rgba(255,255,255,.32);}
+.alink{color:#93b4fc;font-weight:700;cursor:pointer;background:none;border:none;font-size:.76rem;font-family:'DM Sans',sans-serif;}
+.alink:hover{color:#fff;}
+.backrow{margin-bottom:14px;}
+.bkbtn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.34);font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;padding:0;display:flex;align-items:center;gap:4px;transition:color .2s;}
+.bkbtn:hover{color:rgba(255,255,255,.68);}
+.grow2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sbar{display:flex;gap:4px;margin-top:5px;}
+.sseg{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.1);transition:background .3s;}
+.slbl{font-size:.67rem;color:rgba(255,255,255,.26);margin-top:4px;}
+@media(max-width:680px){.aleft{display:none;}.aright{width:100%;padding:30px 22px;}}
+
+/* ── USER APP ── */
+#p5{background:var(--bg);display:flex;flex-direction:column;overflow:hidden;}
+.topbar{background:var(--sur);border-bottom:1px solid var(--brd);box-shadow:var(--sh);flex-shrink:0;position:sticky;top:0;z-index:100;}
+.tb-top{display:flex;align-items:center;justify-content:space-between;padding:9px 22px;border-bottom:1px solid var(--brd);}
+.tb-brand{display:flex;align-items:center;gap:9px;}
+.tb-title{font-family:'Syne',sans-serif;font-size:1.08rem;font-weight:800;color:var(--acc);letter-spacing:-.5px;}
+.uchip{display:flex;align-items:center;gap:6px;padding:3px 9px 3px 4px;background:var(--sur2);border:1px solid var(--brd);border-radius:20px;font-size:.72rem;font-weight:600;color:var(--txt2);}
+.uav{width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.trialbdg{display:flex;align-items:center;gap:4px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.28);border-radius:20px;padding:3px 9px;font-size:.68rem;font-weight:700;color:#fbbf24;}
+.trialbdg .dot{width:5px;height:5px;border-radius:50%;background:#fbbf24;animation:pu 1.5s ease-in-out infinite;}
+.themebtn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;border:1px solid var(--brd);background:var(--sur2);font-size:.76rem;font-weight:600;color:var(--txt2);cursor:pointer;transition:all .17s;font-family:'DM Sans',sans-serif;}
+.themebtn:hover{border-color:var(--acc);color:var(--acc);}
+.navrow{display:flex;align-items:center;padding:0 16px;}
+.ni{display:flex;align-items:center;gap:5px;padding:11px 14px;font-size:.79rem;font-weight:600;font-family:'DM Sans',sans-serif;color:var(--txt2);cursor:pointer;border:none;background:none;border-bottom:2.5px solid transparent;transition:all .17s;white-space:nowrap;}
+.ni:hover{color:var(--acc);background:rgba(59,110,248,.04);}
+.ni.na{color:var(--acc);border-bottom-color:var(--acc);font-weight:700;}
+.ni.ng:hover{color:var(--suc);background:rgba(56,161,105,.04);}
+.ni.nr:hover{color:var(--dan);background:rgba(229,62,62,.04);}
+.ndiv{width:1px;height:16px;background:var(--brd);margin:0 2px;flex-shrink:0;}
+.nsp{flex:1;}
+.btn{padding:7px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.81rem;font-weight:600;cursor:pointer;border:none;transition:all .17s;display:inline-flex;align-items:center;gap:5px;}
+.bp{background:var(--acc);color:#fff;}.bp:hover{background:var(--ach);transform:translateY(-1px);}
+.bg2{background:var(--sur2);color:var(--txt);border:1px solid var(--brd);}.bg2:hover{background:var(--brd);}
+.bsm{padding:4px 9px;font-size:.74rem;border-radius:6px;}
+.layout{display:flex;gap:19px;padding:20px 22px;max-width:1380px;margin:0 auto;width:100%;}
+.fpanel{width:308px;flex-shrink:0;background:var(--sur);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--brd);padding:19px 17px;height:fit-content;position:sticky;top:106px;}
+.fpanel h2{font-family:'Syne',sans-serif;font-size:.96rem;font-weight:800;margin-bottom:14px;color:var(--acc);display:flex;align-items:center;gap:6px;}
+.xg{margin-bottom:11px;}
+.xg label{display:block;font-size:.67rem;font-weight:700;color:var(--txt2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;}
+.xg textarea,.xg select,.xg input{width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--brd);background:var(--sur2);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.84rem;transition:border-color .2s,box-shadow .2s;outline:none;}
+.xg textarea:focus,.xg select:focus,.xg input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(59,110,248,.11);}
+.xg textarea{resize:vertical;min-height:70px;}
+.fact{display:flex;gap:8px;margin-top:12px;}
+.fact .btn{flex:1;justify-content:center;}
+.rpanel{flex:1;min-width:0;}
+.srow{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap;}
+.sc{flex:1;min-width:94px;background:var(--sur);border-radius:9px;padding:11px 13px;border:1px solid var(--brd);box-shadow:var(--sh);}
+.sn{font-family:'Syne',sans-serif;font-size:1.38rem;font-weight:800;}
+.sl{font-size:.66rem;color:var(--txt2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.s1 .sn{color:var(--acc);}.s2 .sn{color:var(--suc);}.s3 .sn{color:var(--wrn);}.s4 .sn{color:var(--dan);}
+.tbar{display:flex;gap:7px;align-items:center;margin-bottom:11px;flex-wrap:wrap;}
+.sw{position:relative;flex:1;min-width:148px;}
+.sw input{width:100%;padding:8px 11px 8px 30px;border-radius:9px;border:1.5px solid var(--brd);background:var(--sur);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.82rem;outline:none;transition:border-color .2s;}
+.sw input:focus{border-color:var(--acc);}
+.si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--txt2);pointer-events:none;}
+.fsel{padding:7px 9px;border-radius:9px;border:1.5px solid var(--brd);background:var(--sur);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.8rem;outline:none;cursor:pointer;}
+.twrap{background:var(--sur);border-radius:var(--r);border:1px solid var(--brd);box-shadow:var(--sh);overflow:hidden;}
+.thead2{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--brd);}
+.thl{font-weight:700;font-size:.83rem;display:flex;align-items:center;gap:6px;}
+.cbdg{background:var(--sur2);border:1px solid var(--brd);border-radius:20px;padding:2px 7px;font-size:.67rem;color:var(--txt2);font-weight:600;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:var(--sur2);padding:8px 10px;text-align:left;font-size:.66rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--brd);white-space:nowrap;}
+thead th:first-child{padding-left:14px;}
+tbody tr{transition:background .14s;}
+tbody tr:hover{background:var(--sur2);}
+tbody tr+tr{border-top:1px solid var(--brd);}
+tbody td{padding:9px 10px;font-size:.82rem;vertical-align:middle;}
+tbody td:first-child{padding-left:14px;}
+.bdg{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:.67rem;font-weight:700;}
+.bdg::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;}
+.bc{background:rgba(56,161,105,.12);color:var(--suc);}.bi2{background:rgba(229,62,62,.1);color:var(--dan);}.bp2{background:rgba(214,158,46,.12);color:var(--wrn);}
+.ac{display:flex;gap:4px;align-items:center;}
+.ico{width:26px;height:26px;padding:0;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--brd);background:var(--sur2);color:var(--txt2);cursor:pointer;transition:all .17s;}
+.ico:hover{transform:scale(1.1);}
+.ico.ed:hover{background:rgba(59,110,248,.1);border-color:var(--acc);color:var(--acc);}
+.ico.dl:hover{background:rgba(229,62,62,.1);border-color:var(--dan);color:var(--dan);}
+input[type="checkbox"]{width:12px;height:12px;accent-color:var(--acc);cursor:pointer;}
+.empty{padding:42px 20px;text-align:center;color:var(--txt2);}
+.empty .em{font-size:1.85rem;margin-bottom:7px;}
+.empty p{font-size:.82rem;}
+@media(max-width:780px){.layout{flex-direction:column;padding:11px;}.fpanel{width:100%;position:static;}}
+
+/* ── ADMIN ── */
+#p6{background:var(--bg);display:flex;flex-direction:column;overflow:hidden;}
+.atopbar{background:linear-gradient(135deg,#1c1107,#2d1f06);border-bottom:2px solid rgba(245,158,11,.22);position:sticky;top:0;z-index:100;box-shadow:0 4px 22px rgba(0,0,0,.28);}
+.atb-top{display:flex;align-items:center;justify-content:space-between;padding:9px 22px;border-bottom:1px solid rgba(255,255,255,.07);}
+.abrand{display:flex;align-items:center;gap:9px;}
+.abtitle{font-family:'Syne',sans-serif;font-size:1.06rem;font-weight:800;color:#fbbf24;letter-spacing:-.4px;}
+.achip{display:flex;align-items:center;gap:5px;padding:3px 9px 3px 4px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.28);border-radius:20px;font-size:.71rem;font-weight:700;color:#fcd34d;}
+.aav{width:19px;height:19px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);color:#1a1d2e;font-size:.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.atbr{display:flex;gap:7px;align-items:center;}
+.anavrow{display:flex;align-items:center;padding:0;}
+.ani{display:flex;align-items:center;gap:5px;padding:11px 14px;font-size:.78rem;font-weight:600;font-family:'DM Sans',sans-serif;color:rgba(255,255,255,.46);cursor:pointer;border:none;background:none;border-bottom:2.5px solid transparent;transition:all .17s;white-space:nowrap;}
+.ani:hover{color:#fbbf24;background:rgba(245,158,11,.05);}
+.ani.aa{color:#fbbf24;border-bottom-color:#f59e0b;font-weight:700;}
+.ansp{flex:1;}
+.xbtn{padding:5px 12px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;border:none;transition:all .17s;display:inline-flex;align-items:center;gap:4px;}
+.xgold{background:linear-gradient(135deg,#f59e0b,#d97706);color:#1a1d2e;box-shadow:0 3px 9px rgba(245,158,11,.26);}
+.xgold:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(245,158,11,.38);}
+.xghost{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.58);}
+.xghost:hover{border-color:rgba(255,255,255,.28);color:#fff;}
+.asec{display:none;padding:20px 22px;max-width:1380px;margin:0 auto;width:100%;}
+.asec.act{display:block;}
+.asectitle{font-family:'Syne',sans-serif;font-size:1.08rem;font-weight:800;color:var(--txt);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.ovgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+@media(max-width:860px){.ovgrid{grid-template-columns:repeat(2,1fr);}}
+.ovc{background:var(--sur);border-radius:11px;padding:16px;border:1px solid var(--brd);box-shadow:var(--sh);position:relative;overflow:hidden;}
+.ovc::before{content:'';position:absolute;width:60px;height:60px;border-radius:50%;top:-16px;right:-16px;opacity:.12;}
+.ov1::before{background:#3b6ef8;}.ov2::before{background:#38a169;}.ov3::before{background:#d69e2e;}.ov4::before{background:#e53e3e;}
+.ovn{font-family:'Syne',sans-serif;font-size:1.75rem;font-weight:800;margin-bottom:3px;}
+.ov1 .ovn{color:var(--acc);}.ov2 .ovn{color:var(--suc);}.ov3 .ovn{color:var(--wrn);}.ov4 .ovn{color:var(--dan);}
+.ovl{font-size:.69rem;color:var(--txt2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.ovi{font-size:1.25rem;margin-bottom:6px;}
+.atwrap{background:var(--sur);border-radius:var(--r);border:1px solid var(--brd);box-shadow:var(--sh);overflow:hidden;margin-bottom:18px;}
+.athead{padding:11px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--brd);flex-wrap:wrap;gap:7px;}
+.athl{font-weight:700;font-size:.83rem;display:flex;align-items:center;gap:6px;}
+.atsw{position:relative;}
+.atsw input{padding:6px 9px 6px 27px;border-radius:7px;border:1.5px solid var(--brd);background:var(--sur2);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.78rem;outline:none;width:180px;transition:border-color .2s;}
+.atsw input:focus{border-color:var(--acc);}
+.atsw .si{left:8px;}
+.atbody{overflow-x:auto;}
+.atempty{padding:38px 20px;text-align:center;color:var(--txt2);font-size:.82rem;}
+.ltag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:.66rem;font-weight:700;}
+.lt{background:rgba(251,191,36,.12);color:#fbbf24;}.ll{background:rgba(56,161,105,.12);color:var(--suc);}.la{background:rgba(245,158,11,.12);color:#f59e0b;}
+.vbar{display:flex;align-items:center;gap:7px;width:100%;}
+.vbg{flex:1;height:6px;background:var(--sur2);border-radius:3px;overflow:hidden;}
+.vbf{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--acc),#6366f1);transition:width .5s ease;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.52);backdrop-filter:blur(4px);z-index:600;display:none;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal-box{background:var(--sur);border-radius:15px;border:1px solid var(--brd);box-shadow:0 18px 55px rgba(0,0,0,.28);width:390px;max-width:calc(100vw - 32px);padding:24px 22px;animation:ci .28s ease;}
+.mhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.mttl{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:var(--acc);}
+.mclose{background:none;border:none;cursor:pointer;color:var(--txt2);font-size:1.05rem;}
+.tbox{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:7px;z-index:9999;}
+.toast{background:var(--sur);border:1px solid var(--brd);border-radius:9px;padding:9px 13px;box-shadow:var(--sh);font-size:.79rem;font-weight:600;display:flex;align-items:center;gap:7px;min-width:205px;animation:tI .3s ease;}
+.toast.s{border-left:4px solid var(--suc);}.toast.e{border-left:4px solid var(--dan);}.toast.i{border-left:4px solid var(--acc);}
+@keyframes tI{from{opacity:0;transform:translateX(22px);}to{opacity:1;transform:none;}}
+@keyframes tO{from{opacity:1;}to{opacity:0;transform:translateX(22px);}}
+
+/* ══ RESPONSIVE — ALL SCREEN SIZES ══════════════════════ */
+
+/* Large tablets & small laptops */
+@media(max-width:1024px){
+  .layout{padding:14px 14px;}
+  .fpanel{width:260px;}
+  .ovgrid{grid-template-columns:repeat(2,1fr);}
+  .atopbar .anavrow{overflow-x:auto;}
+}
+
+/* Tablets */
+@media(max-width:860px){
+  .ovgrid{grid-template-columns:repeat(2,1fr);}
+  .awrap{width:calc(100vw - 24px);min-height:auto;flex-direction:column;}
+  .aleft{display:none;}
+  .aright{width:100%;padding:28px 22px;}
+  .trial-card{padding:36px 24px;}
+  .role-card{width:calc(100vw - 32px);padding:36px 24px;}
+  .atb-top{padding:8px 14px;}
+  .anavrow{padding:0 6px;}
+}
+
+/* Mobile landscape & large phones */
+@media(max-width:780px){
+  .layout{flex-direction:column;padding:10px;}
+  .fpanel{width:100%;position:static;}
+  .rpanel{width:100%;}
+  .tb-top{padding:8px 12px;flex-wrap:wrap;gap:6px;}
+  .navrow{padding:0 6px;overflow-x:auto;flex-wrap:nowrap;}
+  .ni{padding:9px 10px;font-size:.74rem;white-space:nowrap;}
+  .srow{gap:7px;}
+  .sc{min-width:70px;padding:9px 10px;}
+  .sn{font-size:1.1rem;}
+  .tbar{flex-wrap:wrap;gap:6px;}
+  .sw{min-width:120px;}
+  .asec{padding:12px 10px;}
+  .athead{flex-wrap:wrap;gap:6px;}
+  .atsw input{width:140px;}
+  .ovgrid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .ovc{padding:12px;}
+  .ovn{font-size:1.4rem;}
+  thead th{font-size:.6rem;padding:6px 7px;}
+  tbody td{font-size:.77rem;padding:7px 7px;}
+  .awrap{min-height:auto;}
+}
+
+/* Mobile portrait */
+@media(max-width:480px){
+  .trial-card{padding:28px 16px;}
+  .logo{font-size:1.5rem;}
+  .tagline{font-size:.78rem;}
+  .cta{font-size:.85rem;padding:11px;}
+  .role-card{padding:28px 16px;}
+  .role-btn{padding:13px 16px;font-size:.95rem;}
+  .awrap{border-radius:14px;}
+  .aright{padding:22px 16px;}
+  .ar-ttl{font-size:1.1rem;}
+  .ovgrid{grid-template-columns:repeat(2,1fr);gap:7px;}
+  .ovc{padding:10px 10px;}
+  .ovn{font-size:1.2rem;}
+  .ovl{font-size:.6rem;}
+  .srow{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .sc{min-width:unset;}
+  .layout{padding:8px;}
+  .fpanel{padding:14px 12px;}
+  .xg textarea,.xg select,.xg input{font-size:.8rem;}
+  .tbar{gap:5px;}
+  .sw input{font-size:.77rem;}
+  .twrap{border-radius:10px;}
+  thead th{font-size:.57rem;padding:5px 6px;white-space:nowrap;}
+  tbody td{font-size:.74rem;padding:6px 6px;}
+  .bdg{font-size:.62rem;padding:2px 5px;}
+  .ico{width:22px;height:22px;}
+  .tb-title{font-size:.95rem;}
+  .uchip{font-size:.68rem;}
+  .themebtn{font-size:.7rem;padding:4px 8px;}
+  .atb-top{padding:7px 10px;}
+  .ani{padding:9px 10px;font-size:.72rem;}
+  .abtitle{font-size:.92rem;}
+  .atbr{gap:5px;}
+  .xbtn{font-size:.72rem;padding:4px 9px;}
+  .modal-box{padding:18px 14px;border-radius:12px;}
+  .grow2{grid-template-columns:1fr;}
+  .fact{flex-direction:column;}
+  .fact .btn{width:100%;}
+  .athead{padding:8px 10px;}
+  .asectitle{font-size:.88rem;flex-wrap:wrap;gap:6px;}
+  table{display:block;overflow-x:auto;white-space:nowrap;}
+  .vbar{flex-direction:column;align-items:flex-start;gap:3px;}
+  .vbg{width:100%;}
+}
+
+/* Very small phones */
+@media(max-width:360px){
+  .ovgrid{grid-template-columns:1fr 1fr;}
+  .srow{grid-template-columns:1fr 1fr;}
+  .ni{font-size:.68rem;padding:8px 8px;}
+  thead th{font-size:.54rem;}
+  tbody td{font-size:.7rem;}
+}
+
+/* ══ NO SCROLLBAR FIX ═══════════════════════════════════ */
+/* Hide scrollbars everywhere except content areas */
+*::-webkit-scrollbar{width:4px;height:4px;}
+*::-webkit-scrollbar-track{background:transparent;}
+*::-webkit-scrollbar-thumb{background:var(--brd);border-radius:4px;}
+*::-webkit-scrollbar-thumb:hover{background:var(--txt2);}
+
+/* Dark/light auth pages scroll internally */
+.dp{overflow-y:auto!important;}
+
+/* User app — only content scrolls, not whole page */
+.user-content{flex:1;overflow-y:auto;overflow-x:hidden;}
+.admin-content{flex:1;overflow-y:auto;overflow-x:hidden;}
+
+/* Tables scroll horizontally only */
+.atbody{overflow-x:auto;overflow-y:visible;}
+.twrap{overflow:visible;}
+</style>
+</head>
+<body>
+
+<!-- P0: FREE TRIAL -->
+<div id="p0" class="page vs dp">
+  <div class="card trial-card">
+    <div class="logo">Task<span>Mgr</span></div>
+    <div class="tagline">Team task management made simple</div>
+    <div class="trial-badge">&#127873; 1 Free Trial &mdash; No account needed</div>
+    
+    <button class="cta" onclick="startTrial()">&#128640; Start Free Trial</button>
+    <div class="foot">Already have an account? <button onclick="go('p0','p1','r')">Sign In</button></div>
+  </div>
+</div>
+
+<!-- P1: ROLE SELECT -->
+<div id="p1" class="page hr dp">
+  <div class="card role-card">
+    <div class="logo">Task<span>Mgr</span></div>
+    <div class="tagline" style="margin-bottom:16px;">Choose how to continue</div>
+    <div class="role-end">&#9888;&#65039; Free trial used &mdash; sign in to continue</div>
+    <div class="role-lbl">Select your role</div>
+    <div class="role-opts">
+      <button class="role-btn rb-user" onclick="go('p1','p2','r')">
+        <span class="rb-name">User</span>
+        <span class="rb-arrow">&#8594;</span>
+      </button>
+      <button class="role-btn rb-admin" onclick="go('p1','p4a','r')">
+        <span class="rb-name">Admin</span>
+        <span class="rb-arrow">&#8594;</span>
+      </button>
+    </div>
+    <button class="backbtn" onclick="go('p1','p0','l')">&#8592; Back to home</button>
+  </div>
+</div>
+
+<!-- P2: USER LOGIN -->
+<div id="p2" class="page hr dp">
+  <div class="awrap">
+    <div class="aleft ul">
+      <div class="al-lbl">User Access</div>
+      <div class="al-ttl">Welcome <span>back.</span></div>
+      <div class="al-dsc">Sign in to manage tasks and track your team's progress in real-time.</div>
+      <div class="al-note"><span>&#9888;&#65039;</span><div><strong>Free trial used.</strong> Sign in or create a free account to continue.</div></div>
+    </div>
+    <div class="aright">
+      <div class="backrow"><button class="bkbtn" onclick="go('p2','p1','l')">&#8592; Back</button></div>
+      <div class="ar-ttl">User Sign In</div>
+      <div class="ar-sub">Enter your credentials to continue</div>
+      <div class="aerr" id="ulErr"></div>
+      <div class="fg">
+        <label>Email Address</label>
+        <div class="fw">
+          <svg class="fi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <input type="email" id="ulEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')loginUser()"/>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <div class="fw">
+          <svg class="fi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="ulPwd" placeholder="Enter password" onkeydown="if(event.key==='Enter')loginUser()"/>
+          <button class="eye" type="button" onclick="ey('ulPwd',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <button class="abtn" onclick="loginUser()">Sign In &#8594;</button>
+      <div class="afoot">No account? <button class="alink" onclick="go('p2','p3','r')">Create one free</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- P3: REGISTER -->
+<div id="p3" class="page hr dp">
+  <div class="awrap">
+    <div class="aleft ul">
+      <div class="al-lbl">New Account</div>
+      <div class="al-ttl">Join us <span>today.</span></div>
+      <div class="al-dsc">Create your free account and get unlimited access to Task Manager instantly.</div>
+    </div>
+    <div class="aright">
+      <div class="backrow"><button class="bkbtn" onclick="go('p3','p2','l')">&#8592; Back to Sign In</button></div>
+      <div class="ar-ttl">Create Account</div>
+      <div class="ar-sub">Free &mdash; fill in your details below</div>
+      <div class="aerr" id="regErr"></div>
+      <div class="aok" id="regOk"></div>
+      <div class="grow2">
+        <div class="fg">
+          <label>Full Name</label>
+          <div class="fw">
+            <svg class="fi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="regName" placeholder="Full name"/>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Email</label>
+          <div class="fw">
+            <svg class="fi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" id="regEmail" placeholder="you@example.com"/>
+          </div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <div class="fw">
+          <svg class="fi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="regPwd" placeholder="Min. 6 chars" oninput="strCheck(this.value)"/>
+          <button class="eye" type="button" onclick="ey('regPwd',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+        <div class="sbar"><div class="sseg" id="ss1"></div><div class="sseg" id="ss2"></div><div class="sseg" id="ss3"></div><div class="sseg" id="ss4"></div></div>
+        <div class="slbl" id="sslbl">Enter a password</div>
+      </div>
+      <div class="fg">
+        <label>Confirm Password</label>
+        <div class="fw">
+          <svg class="fi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="regConf" placeholder="Repeat password" onkeydown="if(event.key==='Enter')registerUser()"/>
+          <button class="eye" type="button" onclick="ey('regConf',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <button class="abtn" onclick="registerUser()">Create Account &#8594;</button>
+    </div>
+  </div>
+</div>
+
+<!-- P4a: ADMIN PASSWORD -->
+<div id="p4a" class="page hr dp">
+  <div class="awrap admin-auth">
+    <div class="aleft adl">
+      <div class="al-lbl">Admin &mdash; Step 1 of 2</div>
+      <div class="al-ttl">Enter <span>Password.</span></div>
+      <div class="al-dsc">Enter your admin password to proceed to the email verification step.</div>
+      <div class="al-note" style="border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.07);">
+        <span>&#128274;</span>
+        <div><strong>Default password:</strong> Admin@123</div>
+      </div>
+    </div>
+    <div class="aright">
+      <div class="backrow"><button class="bkbtn" onclick="go('p4a','p1','l')">&#8592; Back</button></div>
+      <div class="ar-ttl" style="color:#fcd34d;">Admin Password</div>
+      <div class="ar-sub">Step 1 of 2 &mdash; password check</div>
+      <div class="stepbar">
+        <div class="sc2 sact">1</div>
+        <div class="sl2 sltodo"></div>
+        <div class="sc2 stodo">2</div>
+      </div>
+      <div class="aerr" id="apErr"></div>
+      <div class="fg">
+        <label>Admin Password</label>
+        <div class="fw">
+          <svg class="fi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="apPwd" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')checkPwd()"/>
+          <button class="eye" type="button" onclick="ey('apPwd',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <button class="abtn" onclick="checkPwd()">Next: Enter Email &#8594;</button>
+    </div>
+  </div>
+</div>
+
+<!-- P4b: ADMIN EMAIL -->
+<div id="p4b" class="page hr dp">
+  <div class="awrap admin-auth">
+    <div class="aleft adl">
+      <div class="al-lbl">Admin &mdash; Step 2 of 2</div>
+      <div class="al-ttl">Verify <span>Email.</span></div>
+      <div class="al-dsc">Password verified. Now enter your admin email to complete sign in.</div>
+      <div class="al-note" style="border-color:rgba(56,161,105,.3);background:rgba(56,161,105,.07);">
+        <span>&#10004;&#65039;</span>
+        <div><strong style="color:#68d391;">Password OK!</strong> Default email: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d8b9bcb5b1b698acb9abb3b5b9b6b9bfbdaaf6bbb7b5">[email&#160;protected]</a></div>
+      </div>
+    </div>
+    <div class="aright">
+      <div class="backrow"><button class="bkbtn" onclick="go('p4b','p4a','l')">&#8592; Back</button></div>
+      <div class="ar-ttl" style="color:#fcd34d;">Admin Email</div>
+      <div class="ar-sub">Step 2 of 2 &mdash; email verification</div>
+      <div class="stepbar">
+        <div class="sc2 sdone">&#10003;</div>
+        <div class="sl2 sldone"></div>
+        <div class="sc2 sact">2</div>
+      </div>
+      <div class="aerr" id="aeErr"></div>
+      <div class="fg">
+        <label>Admin Email</label>
+        <div class="fw">
+          <svg class="fi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <input type="email" id="aeEmail" placeholder="admin@taskmanager.com" onkeydown="if(event.key==='Enter')loginAdmin()"/>
+        </div>
+      </div>
+      <button class="abtn" onclick="loginAdmin()">Access Admin Dashboard &#8594;</button>
+    </div>
+  </div>
+</div>
+
+<!-- P5: USER APP -->
+<div id="p5" class="page hr">
+  <div class="topbar">
+    <div class="tb-top">
+      <div class="tb-brand">
+        <div class="tb-title">&#9889; Task Manager</div>
+        <div class="uchip"><div class="uav" id="uAv">U</div><span id="uNm">User</span></div>
+        <div class="trialbdg" id="trialBdg" style="display:none"><span class="dot"></span> Free Trial</div>
+      </div>
+      <button class="themebtn" onclick="themeToggle()" id="themeBtn">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span id="thLbl">Dark Mode</span>
+      </button>
+    </div>
+    <nav class="navrow">
+      <button class="ni na" id="nv-home" onclick="setNav('home')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Dashboard
+      </button>
+      <button class="ni" id="nv-tasks" onclick="setNav('tasks')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Task List
+      </button>
+      <div class="ndiv"></div>
+      <button class="ni ng" onclick="exportTasks()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        Export Excel
+      </button>
+      <div class="nsp"></div>
+      <div class="ndiv"></div>
+      <button class="ni nr" onclick="logoutUser()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </nav>
+  </div>
+  <div class="user-content"><div class="layout">
+    <div class="fpanel">
+      <h2>&#128203; <span id="ftitle">New Task</span></h2>
+      <div class="xg"><label>Task Description</label><textarea id="tTask" placeholder="Describe the task..."></textarea></div>
+      <div class="xg"><label>Assigned To</label>
+        <select id="tAssign">
+          <option value="">-- Select Member --</option>
+        </select>
+        <div id="addMemberDiv" style="display:none;gap:6px;margin-top:6px;">
+          <input type="text" id="newMemberInput" placeholder="Add new member..." style="flex:1;padding:7px 10px;border-radius:8px;border:1.5px solid var(--brd);background:var(--sur2);color:var(--txt);font-family:DM Sans,sans-serif;font-size:.84rem;outline:none;"/>
+          <button onclick="addMember()" style="padding:7px 13px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-family:DM Sans,sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;">+ Add</button>
+        </div>
+      </div>
+      <div class="xg"><label>Status</label>
+        <select id="tStatus">
+          <option value="">-- Select Status --</option>
+          <option value="complete">Complete</option>
+          <option value="incomplete">Incomplete</option>
+          <option value="process">In Process</option>
+        </select>
+      </div>
+      <div class="xg"><label>Start Date</label><input type="date" id="tStart"/></div>
+      <div class="xg"><label>End Date</label><input type="date" id="tEnd"/></div>
+      <div class="fact">
+        <button class="btn bg2" onclick="resetTask()">&#10005; Clear</button>
+        <button class="btn bp" id="tBtn" onclick="submitTask()">+ Submit</button>
+      </div>
+    </div>
+    <div class="rpanel">
+      <div class="srow">
+        <div class="sc s1"><div class="sn" id="sTotal">0</div><div class="sl">Total</div></div>
+        <div class="sc s2"><div class="sn" id="sDone">0</div><div class="sl">Complete</div></div>
+        <div class="sc s3"><div class="sn" id="sProc">0</div><div class="sl">In Process</div></div>
+        <div class="sc s4"><div class="sn" id="sInc">0</div><div class="sl">Incomplete</div></div>
+      </div>
+      <div class="tbar">
+        <div class="sw"><svg class="si" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="tSearch" placeholder="Search tasks or members..." oninput="renderTasks()"/>
+        </div>
+        <select class="fsel" id="tFStat" onchange="renderTasks()">
+          <option value="">All Status</option><option value="complete">Complete</option>
+          <option value="incomplete">Incomplete</option><option value="process">In Process</option>
+        </select>
+        <select class="fsel" id="tFMem" onchange="renderTasks()">
+          <option value="">All Members</option>
+        </select>
+        <button class="btn bsm" id="bulkBtn" style="background:var(--dan);color:#fff;display:none" onclick="bulkDel()">&#128465; Delete</button>
+      </div>
+      <div class="twrap">
+        <div class="thead2">
+          <div class="thl">Task List <span class="cbdg" id="tCnt">0 tasks</span></div>
+          <label style="font-size:.71rem;font-weight:600;color:var(--txt2);display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="selAll" onchange="selAllChk()"/> Select All</label>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th></th><th>S.No</th><th>Task</th><th>Assigned To</th><th>Status</th><th>Start</th><th>End</th><th>Actions</th></tr></thead>
+            <tbody id="tBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="tEmpty"><div class="em">&#128219;</div><p>No tasks yet. Add your first task!</p></div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- P6: ADMIN DASHBOARD -->
+<div id="p6" class="page hr">
+  <div class="atopbar">
+    <div class="atb-top">
+      <div class="abrand">
+        <div class="abtitle">&#128737;&#65039; Admin Panel</div>
+        <div class="achip"><div class="aav">A</div><span id="aNm">Admin</span></div>
+      </div>
+      <div class="atbr">
+        <button class="xbtn xgold" onclick="exportAll()" style="font-size:.76rem;padding:5px 11px;">&#11015; Export All</button>
+        <button class="xbtn xghost" onclick="logoutAdmin()" style="font-size:.76rem;padding:5px 11px;">Logout</button>
+      </div>
+    </div>
+    <nav class="anavrow">
+      <button class="ani aa" id="an-ov" onclick="showTab('ov')">&#128202; Overview</button>
+      <button class="ani" id="an-log" onclick="showTab('log')">&#128273; User Login Log</button>
+      <button class="ani" id="an-tasks" onclick="showTab('tasks')">&#128203; Task List</button>
+      <button class="ani" id="an-mem" onclick="showTab('mem')">&#128065;&#65039; Member Visits</button>
+      <div class="ansp"></div>
+    </nav>
+  </div>
+  <div class="admin-content">
+  <div class="asec act" id="tab-ov">
+    <div class="asectitle">&#128202; Overview</div>
+    <div class="ovgrid">
+      <div class="ovc ov1"><div class="ovi">&#128101;</div><div class="ovn" id="ovReg">0</div><div class="ovl">Registered Users</div></div>
+      <div class="ovc ov2"><div class="ovi">&#128273;</div><div class="ovn" id="ovLog">0</div><div class="ovl">Total Logins</div></div>
+      <div class="ovc ov3"><div class="ovi">&#128203;</div><div class="ovn" id="ovTsk">0</div><div class="ovl">Total Tasks</div></div>
+      <div class="ovc ov4"><div class="ovi">&#127873;</div><div class="ovn" id="ovTri">0</div><div class="ovl">Trial Uses</div></div>
+    </div>
+    <div class="atwrap">
+      <div class="athead"><div class="athl">&#128336; Recent Logins <span class="cbdg" id="ovRecCnt">0</span></div></div>
+      <div class="atbody"><div id="ovRecTable"></div></div>
+    </div>
+  </div>
+  <div class="asec" id="tab-log">
+    <div class="asectitle"><span>&#128273; User Login Log</span><button class="xbtn xgold" onclick="exportLog()" style="font-size:.75rem;padding:5px 11px;">&#11015; Export Log</button></div>
+    <div class="atwrap">
+      <div class="athead">
+        <div class="athl">All Access Records <span class="cbdg" id="logCnt">0</span></div>
+        <div class="atsw"><svg class="si" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="logSrch" placeholder="Search..." oninput="renderLog()"/></div>
+      </div>
+      <div class="atbody"><div id="logTable"></div></div>
+    </div>
+  </div>
+  <div class="asec" id="tab-tasks">
+    <div class="asectitle"><span>&#128203; All Tasks</span><button class="xbtn xgold" onclick="exportTasks()" style="font-size:.75rem;padding:5px 11px;">&#11015; Export Tasks</button></div>
+    <div class="atwrap">
+      <div class="athead">
+        <div class="athl">Task Records <span class="cbdg" id="atkCnt">0</span></div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select class="fsel" id="atkStat" onchange="renderAdminTasks()" style="font-size:.76rem;padding:5px 8px;">
+            <option value="">All Status</option><option value="complete">Complete</option>
+            <option value="incomplete">Incomplete</option><option value="process">In Process</option>
+          </select>
+          <div class="atsw"><svg class="si" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="atkSrch" placeholder="Search..." oninput="renderAdminTasks()"/></div>
+        </div>
+      </div>
+      <div class="atbody"><div id="atkTable"></div></div>
+    </div>
+  </div>
+  <div class="asec" id="tab-mem">
+    <div class="asectitle"><span>&#128065;&#65039; Member Visits</span><button class="xbtn xgold" onclick="exportMembers()" style="font-size:.75rem;padding:5px 11px;">&#11015; Export Members</button></div>
+
+    <!-- Add / Remove Members -->
+    <div style="background:var(--sur);border-radius:var(--r);border:1px solid var(--brd);box-shadow:var(--sh);padding:16px 18px;margin-bottom:16px;">
+      <div style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:var(--acc);margin-bottom:12px;">&#128101; Manage Assigned Members</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input type="text" id="adminNewMember" placeholder="Type new member name..." style="flex:1;padding:8px 12px;border-radius:8px;border:1.5px solid var(--brd);background:var(--sur2);color:var(--txt);font-family:DM Sans,sans-serif;font-size:.84rem;outline:none;"/>
+        <button onclick="adminAddMember()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-family:DM Sans,sans-serif;font-size:.84rem;font-weight:700;cursor:pointer;">+ Add Member</button>
+      </div>
+      <div id="adminMemberList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <div class="atwrap">
+      <div class="athead"><div class="athl">Registered Members &amp; Visits <span class="cbdg" id="memCnt">0</span></div></div>
+      <div class="atbody"><div id="memTable"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+</div><!-- /admin-content -->
+<div class="modal-bg" id="editModal">
+  <div class="modal-box">
+    <div class="mhead"><div class="mttl">&#9999;&#65039; Edit Task</div><button class="mclose" onclick="closeModal()">&#10005;</button></div>
+    <div class="xg"><label>Task Description</label><textarea id="mTask" rows="3"></textarea></div>
+    <div class="xg"><label>Assigned To</label>
+      <select id="mAssign"></select>
+    </div>
+    <div class="xg"><label>Status</label>
+      <select id="mStatus"><option value="complete">Complete</option><option value="incomplete">Incomplete</option><option value="process">In Process</option></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="xg"><label>Start</label><input type="date" id="mStart"/></div>
+      <div class="xg"><label>End</label><input type="date" id="mEnd"/></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn bg2" style="flex:1;justify-content:center;" onclick="closeModal()">Cancel</button>
+      <button class="btn bp" style="flex:1;justify-content:center;" onclick="saveModal()">&#128190; Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="tbox" id="tbox"></div>
+
+
+<script>
+const API='http://localhost:3000/api';
+function E(id){return document.getElementById(id);}
+function showErr(id,m){const e=E(id);e.textContent=m;e.style.display='block';}
+function clrMsg(id){E(id).style.display='none';}
+function ey(id,btn){const i=E(id),s=i.type==='password';i.type=s?'text':'password';btn.innerHTML=s?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>':'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';}
+function strCheck(v){let s=0;if(v.length>=6)s++;if(/[A-Z]/.test(v))s++;if(/[0-9]/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;const c=['','#e53e3e','#d69e2e','#3b6ef8','#38a169'],lb=['','Weak','Fair','Good','Strong'];for(let i=1;i<=4;i++)E('ss'+i).style.background=i<=s?c[s]:'rgba(255,255,255,.1)';const el=E('sslbl');el.textContent=v?(lb[s]||'Weak'):'Enter a password';el.style.color=v?c[s]:'rgba(255,255,255,.26)';}
+const esc=s=>{const d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML;};
+const cap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):'';
+const fd=d=>{if(!d)return '--';const[y,m,dy]=d.split('-');return dy+'/'+m+'/'+y;};
+function getToken(){return localStorage.getItem('tm_token');}
+function setToken(t){localStorage.setItem('tm_token',t);}
+function clearToken(){localStorage.removeItem('tm_token');}
+function getAdminToken(){return localStorage.getItem('tm_admin_token');}
+function setAdminToken(t){localStorage.setItem('tm_admin_token',t);}
+function clearAdminToken(){localStorage.removeItem('tm_admin_token');}
+async function apiFetch(path,options={},token=null){
+  const headers={'Content-Type':'application/json'};
+  if(token)headers['Authorization']='Bearer '+token;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),8000);
+  try{
+    const res=await fetch(API+path,{...options,headers,signal:controller.signal});
+    clearTimeout(timer);
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'Request failed');
+    return data;
+  }catch(e){clearTimeout(timer);if(e.name==='AbortError')throw new Error('Server not responding. Is npm start running?');throw e;}
+}
+function go(from,to,dir){const f=document.getElementById(from),t=document.getElementById(to);f.classList.remove('vs');f.classList.add(dir==='r'?'hl':'hr');t.classList.remove('hl','hr');t.getBoundingClientRect();t.classList.add('vs');}
+function showPage(id){document.querySelectorAll('.page').forEach(p=>{p.classList.remove('vs');p.classList.add('hr');});const el=document.getElementById(id);el.classList.remove('hl','hr');el.getBoundingClientRect();el.classList.add('vs');}
+function toast(msg,type){const icon=type==='s'?'\u2705':type==='e'?'\u274C':'\u2139\uFE0F';const t=document.createElement('div');t.className='toast '+type;t.innerHTML='<span>'+icon+'</span><span>'+msg+'</span>';E('tbox').appendChild(t);setTimeout(()=>{t.style.animation='tO .3s forwards';setTimeout(()=>t.remove(),300);},2600);}
+function themeToggle(){const dark=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',dark?'light':'dark');E('thLbl').textContent=dark?'Dark Mode':'Light Mode';}
+function setNav(id){document.querySelectorAll('.ni').forEach(e=>e.classList.remove('na'));const el=document.getElementById('nv-'+id);if(el)el.classList.add('na');}
+async function startTrial(){if(localStorage.getItem('tm_tr')==='1'){go('p0','p1','r');return;}localStorage.setItem('tm_tr','1');try{await apiFetch('/trial-log',{method:'POST'});}catch(e){}launchApp('Guest',true);}
+async function loginUser(){clrMsg('ulErr');const email=E('ulEmail').value.trim().toLowerCase();const pass=E('ulPwd').value;if(!email){showErr('ulErr','Enter your email.');return;}if(!pass){showErr('ulErr','Enter your password.');return;}try{const data=await apiFetch('/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})});setToken(data.token);await launchApp(data.name,false);}catch(e){showErr('ulErr',e.message||'Incorrect email or password.');}}
+async function registerUser(){clrMsg('regErr');clrMsg('regOk');const name=E('regName').value.trim();const email=E('regEmail').value.trim().toLowerCase();const pass=E('regPwd').value;const conf=E('regConf').value;if(!name){showErr('regErr','Enter your full name.');return;}if(!email||!/\S+@\S+\.\S+/.test(email)){showErr('regErr','Enter a valid email.');return;}if(pass.length<6){showErr('regErr','Password must be at least 6 characters.');return;}if(pass!==conf){showErr('regErr','Passwords do not match.');return;}try{const data=await apiFetch('/auth/register',{method:'POST',body:JSON.stringify({name,email,password:pass})});const ok=E('regOk');ok.textContent='Account created! Signing you in...';ok.style.display='block';setToken(data.token);setTimeout(()=>launchApp(data.name,false),800);}catch(e){showErr('regErr',e.message||'Registration failed.');}}
+function logoutUser(){clearToken();tasks=[];editId=null;E('ulEmail').value='';E('ulPwd').value='';clrMsg('ulErr');showPage(localStorage.getItem('tm_tr')==='1'?'p1':'p0');toast('Logged out','i');}
+async function checkPwd(){clrMsg('apErr');const pass=E('apPwd').value;if(!pass){showErr('apErr','Enter the admin password.');return;}try{await apiFetch('/auth/admin-check-pwd',{method:'POST',body:JSON.stringify({password:pass})});E('apPwd').value='';go('p4a','p4b','r');}catch(e){showErr('apErr',e.message||'Incorrect password.');}}
+async function loginAdmin(){clrMsg('aeErr');const email=E('aeEmail').value.trim().toLowerCase();if(!email){showErr('aeErr','Enter your admin email.');return;}try{const data=await apiFetch('/auth/admin-login',{method:'POST',body:JSON.stringify({email,password:'Admin@123'})});setAdminToken(data.token);E('aNm').textContent='Admin';E('aeEmail').value='';showPage('p6');renderAdminAll();}catch(e){showErr('aeErr',e.message||'Incorrect admin email.');}}
+function logoutAdmin(){clearAdminToken();showPage(localStorage.getItem('tm_tr')==='1'?'p1':'p0');toast('Admin logged out','i');}
+
+/* ══ MEMBERS — MongoDB backed ════════════════════════════ */
+let membersList = [];
+async function loadMembers(){
+  try{
+    const data = await apiFetch('/members',{},getToken()||getAdminToken());
+    membersList = data.map(m=>m.name);
+  }catch(e){
+    membersList = ['guru','hema','dharani','jeeva'];
+  }
+  populateMemberSelects();
+}
+function populateMemberSelects(){
+  ['tAssign','mAssign','tFMem'].forEach(id=>{
+    const sel=E(id); if(!sel)return;
+    const cur=sel.value;
+    while(sel.options.length>1)sel.remove(1);
+    membersList.forEach(m=>{
+      const opt=document.createElement('option');
+      opt.value=m; opt.textContent=cap(m);
+      sel.appendChild(opt);
+    });
+    sel.value=cur;
+  });
+}
+async function addMember(){
+  const input=E('newMemberInput');
+  const name=input.value.trim().toLowerCase().replace(/\s+/g,'-');
+  if(!name||name.length<2){toast('Enter a valid name','e');return;}
+  if(membersList.includes(name)){toast(cap(name)+' already exists!','e');return;}
+  try{
+    const token=getAdminToken();
+    if(!token){toast('Admin access required','e');return;}
+    await apiFetch('/members',{method:'POST',body:JSON.stringify({name})},token);
+    input.value='';
+    await loadMembers();
+    E('mAssign') && (E('mAssign').value=name);
+    toast(cap(name)+' added to all dropdowns!','s');
+  }catch(e){toast(e.message||'Failed to add member','e');}
+}
+
+async function launchApp(name,isTrial=false){
+  E('uNm').textContent=name;
+  E('uAv').textContent=name.charAt(0).toUpperCase();
+  E('trialBdg').style.display=isTrial?'flex':'none';
+  showPage('p5');
+  await loadMembers();
+  if(isTrial){tasks=[];renderTasks();return;}
+  await loadTasks();renderTasks();
+}
+let tasks=[],editId=null,adminEditId=null;
+async function loadTasks(){try{tasks=await apiFetch('/tasks',{},getToken());}catch(e){toast(e.message||'Failed to load tasks','e');tasks=[];}}
+async function submitTask(){const task=E('tTask').value.trim();const asgn=E('tAssign').value;const stat=E('tStatus').value;const start=E('tStart').value;const end=E('tEnd').value;if(!task){toast('Enter the Task','e');return;}if(!asgn){toast('Select Assigned To','e');return;}if(!stat){toast('Select a Status','e');return;}if(!start){toast('Choose Start Date','e');return;}if(!end){toast('Choose End Date','e');return;}if(end<start){toast('End Date cannot be before Start Date','e');return;}try{if(editId!==null){await apiFetch('/tasks/'+editId,{method:'PUT',body:JSON.stringify({task,asgn,stat,start,end})},getToken());toast('Task updated!','s');editId=null;E('ftitle').textContent='New Task';E('tBtn').textContent='+ Submit';}else{await apiFetch('/tasks',{method:'POST',body:JSON.stringify({task,asgn,stat,start,end})},getToken());toast('Task added!','s');}resetTask();await loadTasks();renderTasks();}catch(e){toast(e.message||'Failed to save task','e');}}
+function resetTask(){['tTask','tAssign','tStatus','tStart','tEnd'].forEach(id=>E(id).value='');editId=null;E('ftitle').textContent='New Task';E('tBtn').textContent='+ Submit';}
+function editTask(id){const t=tasks.find(x=>x.id===id);if(!t)return;editId=id;E('tTask').value=t.task;E('tAssign').value=t.asgn;E('tStatus').value=t.stat;E('tStart').value=t.start;E('tEnd').value=t.end;E('ftitle').textContent='Edit Task';E('tBtn').textContent='Update';window.scrollTo({top:0,behavior:'smooth'});toast('Editing - click Update to save','i');}
+async function delTask(id){if(!confirm('Delete this task?'))return;try{await apiFetch('/tasks/'+id,{method:'DELETE'},getToken());toast('Task deleted','e');await loadTasks();renderTasks();}catch(e){toast('Failed to delete','e');}}
+async function bulkDel(){const ids=[...document.querySelectorAll('.rc:checked')].map(x=>x.dataset.id);if(!ids.length)return;if(!confirm('Delete '+ids.length+' task(s)?'))return;try{await apiFetch('/tasks/bulk-delete',{method:'POST',body:JSON.stringify({ids})},getToken());toast(ids.length+' deleted','e');await loadTasks();renderTasks();}catch(e){toast('Failed to delete','e');}}
+function renderTasks(){const q=E('tSearch').value.toLowerCase();const fs=E('tFStat').value;const fm=E('tFMem').value;const data=tasks.filter(t=>(!q||t.task.toLowerCase().includes(q)||t.asgn.toLowerCase().includes(q))&&(!fs||t.stat===fs)&&(!fm||t.asgn===fm));const body=E('tBody');body.innerHTML='';E('tEmpty').style.display=data.length===0?'block':'none';E('tCnt').textContent=data.length+' task'+(data.length!==1?'s':'');data.forEach((t,i)=>{const tr=document.createElement('tr');const lbl=t.stat==='process'?'In Process':cap(t.stat);const cls=t.stat==='complete'?'bc':t.stat==='incomplete'?'bi2':'bp2';tr.innerHTML='<td><input type="checkbox" class="rc" data-id="'+t.id+'" onchange="updBulk()"/></td><td style="color:var(--txt2);font-size:.75rem;font-weight:600;">'+(i+1)+'</td><td style="font-weight:500;max-width:165px;word-break:break-word;">'+esc(t.task)+'</td><td>'+cap(t.asgn)+'</td><td><span class="bdg '+cls+'">'+lbl+'</span></td><td style="font-size:.79rem;color:var(--txt2);">'+fd(t.start)+'</td><td style="font-size:.79rem;color:var(--txt2);">'+fd(t.end)+'</td><td class="ac"><button class="ico ed" onclick="editTask(\''+t.id+'\')" title="Edit"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="ico dl" onclick="delTask(\''+t.id+'\')" title="Delete"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>';body.appendChild(tr);});E('sTotal').textContent=tasks.length;E('sDone').textContent=tasks.filter(t=>t.stat==='complete').length;E('sProc').textContent=tasks.filter(t=>t.stat==='process').length;E('sInc').textContent=tasks.filter(t=>t.stat==='incomplete').length;E('selAll').checked=false;E('bulkBtn').style.display='none';}
+function selAllChk(){const c=E('selAll').checked;document.querySelectorAll('.rc').forEach(x=>x.checked=c);updBulk();}
+function updBulk(){E('bulkBtn').style.display=document.querySelectorAll('.rc:checked').length>0?'inline-flex':'none';}
+function exportTasks(){if(!tasks.length){toast('No tasks to export','e');return;}const ws=XLSX.utils.aoa_to_sheet([['S.No','Task','Assigned To','Status','Start Date','End Date'],...tasks.map((t,i)=>[i+1,t.task,cap(t.asgn),cap(t.stat),fd(t.start),fd(t.end)])]);ws['!cols']=[{wch:6},{wch:35},{wch:14},{wch:12},{wch:12},{wch:12}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Tasks');XLSX.writeFile(wb,'tasks_'+new Date().toISOString().slice(0,10)+'.xlsx');toast('Tasks exported!','s');}
+function showTab(tab){document.querySelectorAll('.asec').forEach(s=>s.classList.remove('act'));document.getElementById('tab-'+tab).classList.add('act');document.querySelectorAll('.ani').forEach(b=>b.classList.remove('aa'));document.getElementById('an-'+tab).classList.add('aa');if(tab==='log')renderLog();if(tab==='tasks')renderAdminTasks();if(tab==='mem'){renderMembers();renderAdminMemberList();}if(tab==='ov')renderOverview();}
+async function renderAdminAll(){renderOverview();renderLog();renderAdminTasks();renderMembers();renderAdminMemberList();}
+function thRow(cols){return '<tr>'+cols.map(c=>'<th style="background:var(--sur2);padding:7px 10px;text-align:left;font-size:.65rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--brd);white-space:nowrap;">'+c+'</th>').join('')+'</tr>';}
+function tdRow(cells){return '<tr style="border-top:1px solid var(--brd);">'+cells.map(c=>'<td style="padding:8px 10px;font-size:.81rem;vertical-align:middle;">'+c+'</td>').join('')+'</tr>';}
+function mkTable(head,rows){if(!rows.length)return '<div class="atempty">No data yet.</div>';return '<table style="width:100%;border-collapse:collapse;"><thead>'+thRow(head)+'</thead><tbody>'+rows.join('')+'</tbody></table>';}
+async function renderOverview(){try{const d=await apiFetch('/admin/overview',{},getAdminToken());E('ovReg').textContent=d.totalUsers;E('ovLog').textContent=d.totalLogins;E('ovTsk').textContent=d.totalTasks;E('ovTri').textContent=d.totalTrials;const rec=d.recentLog||[];E('ovRecCnt').textContent=rec.length;E('ovRecTable').innerHTML=mkTable(['#','Name','Email','Type','Time'],rec.map((r,i)=>tdRow([i+1,'<strong>'+esc(r.name)+'</strong>','<span style="color:var(--txt2)">'+esc(r.email)+'</span>','<span class="ltag '+(r.type==='trial'?'lt':r.type==='admin'?'la':'ll')+'">'+(r.type==='trial'?'Free Trial':r.type==='admin'?'Admin':'Login')+'</span>','<span style="color:var(--txt2);font-size:.76rem">'+r.time+'</span>'])));}catch(e){toast('Failed to load overview','e');}}
+async function renderLog(){try{const q=(E('logSrch').value||'').toLowerCase();const log=(await apiFetch('/admin/log',{},getAdminToken())).filter(r=>!q||r.name.toLowerCase().includes(q)||r.email.toLowerCase().includes(q));E('logCnt').textContent=log.length;E('logTable').innerHTML=mkTable(['S.No','Name','Email','Access Type','Date & Time'],log.map(r=>tdRow([r.sno,'<strong>'+esc(r.name)+'</strong>','<span style="color:var(--txt2)">'+esc(r.email)+'</span>','<span class="ltag '+(r.type==='trial'?'lt':r.type==='admin'?'la':'ll')+'">'+(r.type==='trial'?'Free Trial':r.type==='admin'?'Admin':'Login')+'</span>','<span style="color:var(--txt2);font-size:.76rem">'+r.time+'</span>'])));}catch(e){toast('Failed to load log','e');}}
+async function renderAdminTasks(){try{const q=(E('atkSrch').value||'').toLowerCase();const fs=E('atkStat').value;const tk=(await apiFetch('/admin/tasks',{},getAdminToken())).filter(t=>(!q||t.task.toLowerCase().includes(q)||t.asgn.toLowerCase().includes(q))&&(!fs||t.stat===fs));E('atkCnt').textContent=tk.length;if(!tk.length){E('atkTable').innerHTML='<div class="atempty">No tasks yet.</div>';return;}E('atkTable').innerHTML='<table style="width:100%;border-collapse:collapse;"><thead>'+thRow(['S.No','Task','Assigned To','Status','Start','End','Edit'])+'</thead><tbody>'+tk.map((t,i)=>{const lbl=t.stat==='process'?'In Process':cap(t.stat);const cls=t.stat==='complete'?'bc':t.stat==='incomplete'?'bi2':'bp2';return tdRow([i+1,'<span style="font-weight:500;max-width:170px;display:block;word-break:break-word;">'+esc(t.task)+'</span>',cap(t.asgn),'<span class="bdg '+cls+'">'+lbl+'</span>','<span style="font-size:.78rem;color:var(--txt2)">'+fd(t.start)+'</span>','<span style="font-size:.78rem;color:var(--txt2)">'+fd(t.end)+'</span>','<button class="ico ed" onclick="openModal(\''+t.id+'\')" title="Edit"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>']);}).join('')+'</tbody></table>';}catch(e){toast('Failed to load tasks','e');}}
+async function openModal(id){adminEditId=id;try{const tk=await apiFetch('/admin/tasks',{},getAdminToken());const t=tk.find(x=>x.id===id);if(!t)return;await loadMembers();E('mTask').value=t.task;E('mAssign').value=t.asgn;E('mStatus').value=t.stat;E('mStart').value=t.start;E('mEnd').value=t.end;
+  const div=E('addMemberDiv');if(div){div.style.display='flex';}
+  E('editModal').classList.add('open');}catch(e){toast('Failed to load task','e');}}
+function closeModal(){E('editModal').classList.remove('open');adminEditId=null;const div=E('addMemberDiv');if(div)div.style.display='none';}
+async function saveModal(){if(!adminEditId)return;try{await apiFetch('/admin/tasks/'+adminEditId,{method:'PUT',body:JSON.stringify({task:E('mTask').value.trim(),asgn:E('mAssign').value,stat:E('mStatus').value,start:E('mStart').value,end:E('mEnd').value})},getAdminToken());closeModal();renderAdminTasks();toast('Task updated!','s');}catch(e){toast('Failed to update task','e');}}
+async function adminAddMember(){
+  const input=E('adminNewMember');
+  const name=input.value.trim().toLowerCase().replace(/\s+/g,'-');
+  if(!name||name.length<2){toast('Enter a valid name','e');return;}
+  try{
+    await apiFetch('/members',{method:'POST',body:JSON.stringify({name})},getAdminToken());
+    input.value='';
+    await loadMembers();
+    renderAdminMemberList();
+    toast(cap(name)+' added!','s');
+  }catch(e){toast(e.message||'Failed to add member','e');}
+}
+
+async function renderAdminMemberList(){
+  try{
+    const members=await apiFetch('/members',{},getAdminToken());
+    const el=E('adminMemberList');
+    if(!el)return;
+    el.innerHTML=members.map(m=>`
+      <div style="display:inline-flex;align-items:center;gap:6px;background:var(--sur2);border:1px solid var(--brd);border-radius:20px;padding:5px 12px;font-size:.78rem;font-weight:600;">
+        <span>${cap(m.name)}</span>
+        <button onclick="adminDeleteMember('${m.name}')" style="background:none;border:none;cursor:pointer;color:var(--dan);font-size:.85rem;padding:0;line-height:1;" title="Remove">&#10005;</button>
+      </div>`).join('');
+  }catch(e){}
+}
+
+async function adminDeleteMember(name){
+  if(!confirm('Remove '+cap(name)+' from members?'))return;
+  try{
+    await apiFetch('/members/'+name,{method:'DELETE'},getAdminToken());
+    await loadMembers();
+    renderAdminMemberList();
+    toast(cap(name)+' removed!','e');
+  }catch(e){toast('Failed to remove member','e');}
+}
+
+async function renderMembers(){try{const us=await apiFetch('/admin/users',{},getAdminToken());E('memCnt').textContent=us.length;if(!us.length){E('memTable').innerHTML='<div class="atempty">No registered members yet.</div>';return;}const max=Math.max(...us.map(u=>u.visits||0),1);E('memTable').innerHTML='<table style="width:100%;border-collapse:collapse;"><thead>'+thRow(['S.No','Name','Email','Joined','Logins','Visit Progress'])+'</thead><tbody>'+us.map((u,i)=>{const v=u.visits||0,pct=Math.round(v/max*100);return tdRow([i+1,'<strong>'+esc(u.name)+'</strong>','<span style="color:var(--txt2)">'+esc(u.email)+'</span>','<span style="font-size:.78rem;color:var(--txt2)">'+(u.joined||'—')+'</span>','<strong style="color:var(--acc)">'+v+'</strong>','<div class="vbar"><div class="vbg"><div class="vbf" style="width:'+pct+'%"></div></div><span style="font-size:.72rem;font-weight:700;color:var(--txt2);min-width:22px">'+v+'x</span></div>']);}).join('')+'</tbody></table>';}catch(e){toast('Failed to load members','e');}}
+async function exportLog(){try{const l=await apiFetch('/admin/log',{},getAdminToken());if(!l.length){toast('No log data','e');return;}const ws=XLSX.utils.aoa_to_sheet([['S.No','Name','Email','Type','Time'],...l.map(r=>[r.sno,r.name,r.email,r.type,r.time])]);ws['!cols']=[{wch:6},{wch:22},{wch:28},{wch:12},{wch:22}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'UserLog');XLSX.writeFile(wb,'user_log_'+new Date().toISOString().slice(0,10)+'.xlsx');toast('Log exported!','s');}catch(e){toast('Export failed','e');}}
+async function exportMembers(){try{const us=await apiFetch('/admin/users',{},getAdminToken());if(!us.length){toast('No members','e');return;}const ws=XLSX.utils.aoa_to_sheet([['S.No','Name','Email','Joined','Visits'],...us.map((u,i)=>[i+1,u.name,u.email,u.joined||'',u.visits||0])]);ws['!cols']=[{wch:6},{wch:22},{wch:28},{wch:14},{wch:10}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Members');XLSX.writeFile(wb,'members_'+new Date().toISOString().slice(0,10)+'.xlsx');toast('Members exported!','s');}catch(e){toast('Export failed','e');}}
+async function exportAll(){try{const[l,us,tk]=await Promise.all([apiFetch('/admin/log',{},getAdminToken()),apiFetch('/admin/users',{},getAdminToken()),apiFetch('/admin/tasks',{},getAdminToken())]);const wb=XLSX.utils.book_new();const w1=XLSX.utils.aoa_to_sheet([['S.No','Name','Email','Type','Time'],...l.map(r=>[r.sno,r.name,r.email,r.type,r.time])]);w1['!cols']=[{wch:6},{wch:22},{wch:28},{wch:12},{wch:22}];XLSX.utils.book_append_sheet(wb,w1,'Login Log');const w2=XLSX.utils.aoa_to_sheet([['S.No','Name','Email','Joined','Visits'],...us.map((u,i)=>[i+1,u.name,u.email,u.joined||'',u.visits||0])]);w2['!cols']=[{wch:6},{wch:22},{wch:28},{wch:14},{wch:10}];XLSX.utils.book_append_sheet(wb,w2,'Members');const w3=XLSX.utils.aoa_to_sheet([['S.No','Task','Assigned To','Status','Start','End'],...tk.map((t,i)=>[i+1,t.task,cap(t.asgn),cap(t.stat),fd(t.start),fd(t.end)])]);w3['!cols']=[{wch:6},{wch:35},{wch:14},{wch:12},{wch:12},{wch:12}];XLSX.utils.book_append_sheet(wb,w3,'Tasks');XLSX.writeFile(wb,'admin_report_'+new Date().toISOString().slice(0,10)+'.xlsx');toast('Full report exported (3 sheets)!','s');}catch(e){toast('Export failed','e');}}
+(function(){
+  const at=getAdminToken(),ut=getToken();
+  if(at){try{const p=JSON.parse(atob(at.split('.')[1]));if(p.exp*1000>Date.now()){E('aNm').textContent='Admin';showPage('p6');renderAdminAll();return;}}catch(e){clearAdminToken();}}
+  if(ut){try{const p=JSON.parse(atob(ut.split('.')[1]));if(p.exp*1000>Date.now()){launchApp(p.name,false);return;}}catch(e){clearToken();}}
+  showPage(localStorage.getItem('tm_tr')==='1'?'p1':'p0');
+})();
+</script>
+</body>
+</html>
