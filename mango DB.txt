@@ -1,8 +1,0 @@
-mango DB 
-
-
-mongodb+srv://Admin:admin@2003@cluster0.j9oepvt.mongodb.net/?appName=Cluster0
-
-
-
-
