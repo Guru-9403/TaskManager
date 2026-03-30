@@ -7,12 +7,13 @@ const cors       = require('cors');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── CONFIG ──────────────────────────────────────────────
-const MONGODB_URI = 'mongodb+srv://Admin:admin%402003@cluster0.j9oepvt.mongodb.net/dailytask?appName=Cluster0';
-const DB_NAME     = 'dailytask';
-const JWT_SECRET  = 'taskmanager_secret_key_2024';
-const ADMIN_EMAIL = 'admin@taskmanager.com';
-const ADMIN_PASS  = 'Admin@123';
+// ── CONFIG — loaded from environment variables ───────────
+require('dotenv').config();
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Admin:admin%402003@cluster0.j9oepvt.mongodb.net/dailytask?appName=Cluster0';
+const DB_NAME     = process.env.DB_NAME     || 'dailytask';
+const JWT_SECRET  = process.env.JWT_SECRET  || 'taskmanager_secret_key_2024';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@taskmanager.com';
+const ADMIN_PASS  = process.env.ADMIN_PASS  || 'Admin@123';
 
 // ── MIDDLEWARE ───────────────────────────────────────────
 app.use(cors());
@@ -371,7 +372,16 @@ async function addLog(name, email, type, database) {
 
 // ── START SERVER ──────────────────────────────────────────
 connectDB().then(() => {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`🚀 Server running at http://localhost:${PORT}`);
+  });
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`⚠️  Port ${PORT} is busy! Run this command first:`);
+      console.log(`    netstat -ano | findstr :${PORT}`);
+      console.log(`    Then: taskkill /PID <number> /F`);
+      console.log(`    Then: npm start`);
+      process.exit(1);
+    }
   });
 });
